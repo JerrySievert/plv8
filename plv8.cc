@@ -495,7 +495,8 @@ void *term_handler = NULL;
 void
 signal_handler (int sig) {
 	elog(DEBUG1, "cancelling execution");
-	v8::V8::TerminateExecution(plv8_isolate);
+	//v8::V8::TerminateExecution(plv8_isolate);
+	plv8_isolate->TerminateExecution();
 }
 
 /*
@@ -507,7 +508,7 @@ static Local<v8::Value>
 DoCall(Handle<Function> fn, Handle<Object> receiver,
 	int nargs, Handle<v8::Value> args[])
 {
-	TryCatch		try_catch;
+	TryCatch		try_catch(plv8_isolate);
 #ifdef EXECUTION_TIMEOUT
 #ifdef _MSC_VER
 	HANDLE  hThread;
@@ -825,7 +826,7 @@ CallTrigger(PG_FUNCTION_ARGS, plv8_exec_env *xenv)
 		tgargs->Set(i, ToString(trig->tg_trigger->tgargs[i]));
 	args[9] = tgargs;
 
-	TryCatch			try_catch;
+	TryCatch			try_catch(plv8_isolate);
 	Local<Object> recv = Local<Object>::New(plv8_isolate, xenv->recv);
 	Local<Function>		fn =
 		Local<Function>::Cast(recv->GetInternalField(0));
@@ -1168,7 +1169,7 @@ CompileDialect(const char *src, Dialect dialect)
 	}
 	Local<Context> ctx = Local<Context>::New(plv8_isolate, context);
 	Context::Scope	context_scope(ctx);
-	TryCatch		try_catch;
+	TryCatch		try_catch(plv8_isolate);
 	Local<String>	key;
 	char		   *cresult;
 	const char	   *dialect_binary_data;
@@ -1342,7 +1343,7 @@ CompileFunction(
 
 	Local<Context> context = Local<Context>::New(plv8_isolate, global_context);
 	Context::Scope	context_scope(context);
-	TryCatch		try_catch;
+	TryCatch		try_catch(plv8_isolate);
 	Local<Script>	script = Script::Compile(source, Handle<String>::Cast(name));
 
 	if (script.IsEmpty())
@@ -1401,7 +1402,7 @@ find_js_function(Oid fn_oid)
 										   true, false,
 										   (Dialect) (PLV8_DIALECT_NONE + langno));
 
-		TryCatch			try_catch;
+		TryCatch			try_catch(plv8_isolate);
 
 		func = Local<Function>::New(plv8_isolate, proc->cache->function);
 	}
@@ -1530,7 +1531,7 @@ GetGlobalContext(Persistent<Context>& global_context)
 
 			HandleScope			handle_scope(plv8_isolate);
 			Context::Scope		context_scope(my_context->localContext());
-			TryCatch			try_catch;
+			TryCatch			try_catch(plv8_isolate);
 			MemoryContext		ctx = CurrentMemoryContext;
 			text *arg;
 			FunctionCallInfoData fake_fcinfo;
@@ -1609,7 +1610,7 @@ GetGlobalObjectTemplate()
 	{
 		HandleScope				handle_scope(plv8_isolate);
 
-		Local<ObjectTemplate> templ = ObjectTemplate::New();
+		Local<ObjectTemplate> templ = ObjectTemplate::New(plv8_isolate);
 		// ERROR levels for elog
 		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG5", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG5));
 		templ->Set(String::NewFromUtf8(plv8_isolate, "DEBUG4", String::kInternalizedString), Int32::New(plv8_isolate, DEBUG4));
@@ -1624,7 +1625,7 @@ GetGlobalObjectTemplate()
 		templ->Set(String::NewFromUtf8(plv8_isolate, "ERROR", String::kInternalizedString), Int32::New(plv8_isolate, ERROR));
 		global.Reset(plv8_isolate, templ);
 
-		Handle<ObjectTemplate>	plv8 = ObjectTemplate::New();
+		Handle<ObjectTemplate>	plv8 = ObjectTemplate::New(plv8_isolate);
 
 		SetupPlv8Functions(plv8);
 		plv8->Set(String::NewFromUtf8(plv8_isolate, "version", String::kInternalizedString), String::NewFromUtf8(plv8_isolate, PLV8_VERSION));
@@ -1756,7 +1757,7 @@ Datum
 Converter::ToDatum(Handle<v8::Value> value, Tuplestorestate *tupstore)
 {
 	Datum			result;
-	TryCatch		try_catch;
+	TryCatch		try_catch(plv8_isolate);
 	Handle<Object>	obj;
 
 	if (!m_is_scalar)
