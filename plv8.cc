@@ -1533,8 +1533,6 @@ GetGlobalContext(Persistent<Context>& global_context)
 #if PG_VERSION_NUM < 120000
 			FunctionCallInfoData fake_fcinfo;
 #else
-			FunctionCallInfo fake_fcinfo;
-
 			// Stack-allocate FunctionCallInfoBaseData with
  			// space for 2 arguments:
  			LOCAL_FCINFO(fake_fcinfo, 2);
